@@ -1,0 +1,7 @@
+version: '2'
+services:
+  php:
+    container_name: intervals_php
+    image: php
+    volumes:
+      - .:/var/www/intervals
