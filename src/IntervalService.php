@@ -1,12 +1,14 @@
 <?php
 
 require('Interval.php');
+require('IntervalCollection.php');
 
 /**
  * Provides working with the Intervals
  * @todo Interface with methods getResult, add
  * @todo Providers or Drivers to work with DB, files or array,
  *       all protected and private methods should be implemented in those Providers
+ * @todo $this->intervals = new IntervalCollection();
  */
 class IntervalService
 {
