@@ -27,38 +27,52 @@ foreach ($example2 as $v) {
 
 class IntervalService
 {
-
     /** @var array */
     protected $intervals = [];
 
     public function getResult(): string
     {
+        usort($this->intervals, function($a, $b) {
+            return $a->getStart() - $b->getStart();
+        });
+
         $result = [];
         foreach ($this->intervals as $v) {
             $result[] = '('.$v.')';
         }
-        return implode(",  \r\n", $result);
+        return implode(", ", $result)." \r\n";
     }
 
     public function add(string $value): self
     {
         $interval = $this->convertToInterval($value);
-        $intervals = $this->cleanUp($interval);
-
-        $intervals[] = $interval;
-        $this->intervals = $intervals;
+        $this
+            ->cleanUp($interval)
+            ->cropNearest($interval);
+        $this->intervals[] = $interval;
         return $this;
     }
 
-    protected function cleanUp(Interval $interval): array
+    protected function cleanUp(Interval $interval): self
     {
-        $cleanedUp = $this->intervals;
-        foreach ($cleanedUp as $k => $v) {
-            if($v->getStart() >= $interval->getStart() && $v->getEnd() <=$interval->getEnd()) {
-                unset($cleanedUp[$k]);
+        foreach ($this->intervals as $k => $v) {
+            if($v->getStart() >= $interval->getStart() && $v->getEnd() <= $interval->getEnd()) {
+                unset($this->intervals[$k]);
             }
         }
-        return $cleanedUp;
+        return $this;
+    }
+
+    protected function cropNearest(Interval $interval): self
+    {
+        foreach ($this->intervals as $k => &$v) {
+            if($v->getStart() <= $interval->getStart() && $v->getEnd() >= $interval->getStart()) {
+                $v->setEnd($interval->getEnd()-1);
+            } elseif($v->getStart() <= $interval->getEnd() && $v->getEnd() >= $interval->getEnd()) {
+                $v->setStart($interval->getStart()+1);
+            }
+        }
+        return $this;
     }
 
     protected function convertToInterval(string $value): Interval
