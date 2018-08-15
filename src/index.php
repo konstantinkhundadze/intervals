@@ -24,11 +24,21 @@ foreach ($example2 as $v) {
     echo $service->add($v)->getResult(). " \r\n";
 }
 
+/**
+ * Provides working with the Intervals
+ * @todo Interface with methods getResult, add
+ * @todo Providers or Drivers to work with DB, files or array,
+ *       all protected and private methods should be implemented in those Providers
+ */
 class IntervalService
 {
     /** @var array */
     protected $intervals = [];
 
+    /**
+     * Get list of all intervals
+     * @return string
+     */
     public function getResult(): string
     {
         usort($this->intervals, function($a, $b) {
@@ -42,17 +52,28 @@ class IntervalService
         return implode(", ", $result)." \r\n";
     }
 
+    /**
+     * Set new interval and merge with others
+     * @param string $value
+     * @return IntervalService
+     */
     public function add(string $value): self
     {
         $interval = $this->convertToInterval($value);
         $this
             ->cleanUp($interval)
             ->cropNearest($interval)
-            ->mergeNearest($interval);
+            ->mergeNearest($interval)
+            ->postCleanUp();
         $this->intervals[] = $interval;
         return $this;
     }
 
+    /**
+     * Remove all interval between new one
+     * @param Interval $interval
+     * @return IntervalService
+     */
     protected function cleanUp(Interval $interval): self
     {
         foreach ($this->intervals as $k => $v) {
@@ -63,6 +84,25 @@ class IntervalService
         return $this;
     }
 
+    /**
+     * Clean intervals list after add new interval
+     * @return IntervalService
+     */
+    protected function postCleanUp(): self
+    {
+        foreach ($this->intervals as $k => $v) {
+            if($v->getStart() > $v->getEnd()) {
+                unset($this->intervals[$k]);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Truncates the intervals that affect the added
+     * @param Interval $interval
+     * @return IntervalService
+     */
     protected function cropNearest(Interval $interval): self
     {
         $newIntervals = [];
@@ -87,6 +127,12 @@ class IntervalService
         return $this;
     }
 
+    /**
+     * If the intervals before or after new added interval,
+     * have the same price we should merge them with the new added
+     * @param Interval $interval
+     * @return IntervalService
+     */
     protected function mergeNearest(Interval $interval): self
     {
         foreach ($this->intervals as $k => $v) {
@@ -102,6 +148,11 @@ class IntervalService
         return $this;
     }
 
+    /**
+     * Convert string like '1-10:15' (`start`-`end`:`price`) to object Interval
+     * @param string $value
+     * @return Interval
+     */
     protected function convertToInterval(string $value): Interval
     {
         $ex1 = explode('-', $value);
@@ -116,7 +167,9 @@ class IntervalService
 
 }
 
-/** Entity */
+/**
+ * Entity to work with Intervals
+ */
 class Interval
 {
 
@@ -162,6 +215,10 @@ class Interval
         return $this;
     }
 
+    /**
+     * @return string format '1-5:15'
+     *          `start`-`end`:`price`
+     */
     public function __toString()
     {
         return $this->getStart().'-'.$this->getEnd().':'.$this->getPrice();
