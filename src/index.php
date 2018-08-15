@@ -6,7 +6,6 @@ $example1 = [
     '5-20:15',
     '2-8:45',
     '9-10:45',
-    '1-10:15',
 ];
 $service = new  IntervalService();
 foreach ($example1 as $v) {
@@ -48,7 +47,8 @@ class IntervalService
         $interval = $this->convertToInterval($value);
         $this
             ->cleanUp($interval)
-            ->cropNearest($interval);
+            ->cropNearest($interval)
+            ->mergeNearest($interval);
         $this->intervals[] = $interval;
         return $this;
     }
@@ -65,13 +65,40 @@ class IntervalService
 
     protected function cropNearest(Interval $interval): self
     {
-        foreach ($this->intervals as $k => &$v) {
+        $newIntervals = [];
+        foreach ($this->intervals as $k => $v) {
             if($v->getStart() <= $interval->getStart() && $v->getEnd() >= $interval->getStart()) {
-                $v->setEnd($interval->getEnd()-1);
+                    if ($v->getEnd() > $interval->getEnd()) {
+                        $newIntervals[] = (new Interval())
+                            ->setStart($interval->getEnd()+1)
+                            ->setEnd($v->getEnd())
+                            ->setPrice($v->getPrice());
+                    }
+                    $v->setEnd($interval->getStart()-1);
             } elseif($v->getStart() <= $interval->getEnd() && $v->getEnd() >= $interval->getEnd()) {
-                $v->setStart($interval->getStart()+1);
+                $v->setStart($interval->getEnd()+1);
             }
         }
+
+        foreach ($newIntervals as $new) {
+            $this->intervals[] = $new;
+        }
+
+        return $this;
+    }
+
+    protected function mergeNearest(Interval $interval): self
+    {
+        foreach ($this->intervals as $k => $v) {
+            if ($v->getStart() == $interval->getEnd() + 1 && $v->getPrice() == $interval->getPrice()) {
+                $interval->setEnd($v->getEnd());
+                unset($this->intervals[$k]);
+            } elseif($v->getEnd() == $interval->getStart() - 1 && $v->getPrice() == $interval->getPrice()) {
+                $interval->setStart($v->getStart());
+                unset($this->intervals[$k]);
+            }
+        }
+
         return $this;
     }
 
